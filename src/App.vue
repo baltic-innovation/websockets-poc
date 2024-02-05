@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 
-const userInput = ref()
+const userInput = ref({
+  exercise: ''
+})
 
-const resultRaw = ref()
-const resultParsed = ref()
+const classificationRaw = ref()
+const classification = ref()
+const availableExercises = ref([])
 
 let ws = ref<WebSocket>()
 
@@ -14,7 +17,7 @@ const start = () => {
   }
   ws.value = new WebSocket(import.meta.env.VITE_WS_ENDPOINT as string)
   ws.value.onopen = () => {
-    ws.value?.send(userInput.value)
+    ws.value?.send(JSON.stringify(userInput.value))
   }
   ws.value.onclose = (e) => {
     // Everything above 1001 indicates an error
@@ -29,9 +32,9 @@ const start = () => {
       return
     }
 
-    resultRaw.value = e.data
+    classificationRaw.value = e.data
     try {
-      resultParsed.value = JSON.parse(resultRaw.value)
+      classification.value = JSON.parse(classificationRaw.value)
     } catch {
       /* This can remain empty, we catch if you want to check value that can't be parsed */
     }
@@ -39,28 +42,49 @@ const start = () => {
 }
 
 const stop = () => {
-  resultParsed.value = undefined
-  resultRaw.value = undefined
+  classification.value = undefined
+  classificationRaw.value = undefined
   // Close with 1000 code (normal closure)
   ws.value?.close(1000)
 }
+
+async function fetchAvailableExercises() {
+  try {
+    const res = await fetch(import.meta.env.VITE_API_ENDPOINT as string)
+
+    if (!res.ok) {
+      throw new Error('Network response was not ok')
+    }
+
+    const data = await res.json()
+    availableExercises.value = data
+    console.log(data)
+  } catch (error) {}
+}
+
+onMounted(async () => {
+  await fetchAvailableExercises()
+})
 </script>
 
 <template>
   <div>
     <div v-if="!ws || ws.readyState === ws.CLOSED || ws.readyState === ws.CLOSING">
-      <input v-model="userInput" placeholder="Message content" />
+      <select name="Exercise" id="exercise" v-model="userInput.exercise">
+        <option v-for="exercise in availableExercises">{{ exercise }}</option>
+      </select>
 
-      <button @click="start">Send message</button>
+      <button @click="start">Start classifying</button>
     </div>
-    <button v-if="ws && ws.readyState === ws.OPEN" @click="stop">Close connection</button>
+    <button v-if="ws && ws.readyState === ws.OPEN" @click="stop">Stop classifying</button>
     <div>
-      <div v-if="resultRaw">
+      <div v-if="classificationRaw">
         <h2>WebSocket result:</h2>
-        <div v-if="resultParsed">
-          <p>Result as JSON: {{ resultParsed }}</p>
+        <div v-if="classification">
+          <p>Exercise: {{ classification.mode }}</p>
+          <p>Count: {{ classification.count }}</p>
         </div>
-        <p v-else>Raw value: {{ resultRaw }}</p>
+        <p v-else>Raw value: {{ classificationRaw }}</p>
       </div>
     </div>
   </div>
