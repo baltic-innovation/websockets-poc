@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 
 const userInput = ref({
   exercise: ''
@@ -7,6 +7,7 @@ const userInput = ref({
 
 const classificationRaw = ref()
 const classification = ref()
+const availableExercises = ref([])
 
 let ws = ref<WebSocket>()
 
@@ -46,12 +47,32 @@ const stop = () => {
   // Close with 1000 code (normal closure)
   ws.value?.close(1000)
 }
+
+async function fetchAvailableExercises() {
+  try {
+    const res = await fetch(import.meta.env.VITE_API_ENDPOINT as string)
+
+    if (!res.ok) {
+      throw new Error('Network response was not ok')
+    }
+
+    const data = await res.json()
+    availableExercises.value = data
+    console.log(data)
+  } catch (error) {}
+}
+
+onMounted(async () => {
+  await fetchAvailableExercises()
+})
 </script>
 
 <template>
   <div>
     <div v-if="!ws || ws.readyState === ws.CLOSED || ws.readyState === ws.CLOSING">
-      <input v-model="userInput.exercise" placeholder="Exercise name" />
+      <select name="Exercise" id="exercise" v-model="userInput.exercise">
+        <option v-for="exercise in availableExercises">{{ exercise }}</option>
+      </select>
 
       <button @click="start">Start classifying</button>
     </div>
