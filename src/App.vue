@@ -47,32 +47,13 @@ const stop = () => {
   // Close with 1000 code (normal closure)
   ws.value?.close(1000)
 }
-
-async function fetchAvailableExercises() {
-  try {
-    const res = await fetch(import.meta.env.VITE_API_ENDPOINT as string)
-
-    if (!res.ok) {
-      throw new Error('Network response was not ok')
-    }
-
-    const data = await res.json()
-    availableExercises.value = data
-    console.log(data)
-  } catch (error) {}
-}
-
-onMounted(async () => {
-  await fetchAvailableExercises()
-})
 </script>
 
 <template>
   <div>
     <div v-if="!ws || ws.readyState === ws.CLOSED || ws.readyState === ws.CLOSING">
-      <select name="Exercise" id="exercise" v-model="userInput.exercise">
-        <option v-for="exercise in availableExercises">{{ exercise }}</option>
-      </select>
+
+      <input v-model.number="userInput.exercise">
 
       <button @click="start">Start classifying</button>
     </div>
