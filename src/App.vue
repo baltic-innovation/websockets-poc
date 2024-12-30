@@ -64,6 +64,7 @@ const stop = () => {
         <div v-if="classification">
           <p>Exercise: {{ classification.mode }}</p>
           <p>Count: {{ classification.count }}</p>
+          <p>Recognized: {{classification.recognized}}</p>
         </div>
         <p v-else>Raw value: {{ classificationRaw }}</p>
       </div>
